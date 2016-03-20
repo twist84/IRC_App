@@ -1,0 +1,27 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="IRC_App.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="IRC_Serv" Type="System.String" Scope="User">
+      <Value Profile="(Default)">irc.snoonet.org</Value>
+    </Setting>
+    <Setting Name="IRC_User" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Username</Value>
+    </Setting>
+    <Setting Name="IRC_Nick" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Nickname</Value>
+    </Setting>
+    <Setting Name="IRC_Pass" Type="System.String" Scope="User">
+      <Value Profile="(Default)">password</Value>
+    </Setting>
+    <Setting Name="IRC_Chan" Type="System.String" Scope="User">
+      <Value Profile="(Default)">#channel</Value>
+    </Setting>
+    <Setting Name="Commands" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Command1|message to send;command2|link to a url</Value>
+    </Setting>
+    <Setting Name="Triggers" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Trigger1;trigger2</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

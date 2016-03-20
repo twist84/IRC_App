@@ -74,8 +74,13 @@ namespace IRC_Lib
             {
                 string Topic = e.Channel.Topic;
 
-                Console.WriteLine("{0}", Topic);
-                Logger.Log(String.Format("{0}", Topic));
+                if (!(Topic.Contains("ftp://") || Topic.Contains("http://") || Topic.Contains("https://")))
+                {
+                    Logger.Log(String.Format("{0}", Topic));
+                }
+                else
+                    Logger.Log(String.Format("The topic in channel {0} contains a Url not logging it", e.Channel.Name));
+
             };
 
             client.ChannelMessageRecieved += (s, e) =>

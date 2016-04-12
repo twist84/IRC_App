@@ -16,9 +16,17 @@ namespace IRC_App
 
             DEBUG.SHOW("{0}\n{1}\n{2}\n{3}\n{4}\n", Settings.IRC_Serv, Settings.IRC_Chan, Settings.IRC_User, Settings.IRC_Nick, Settings.IRC_Pass);
 
-            Client.Connect(Client.client);
-            Client.ChannelRecieved(Client.client);
-            Client.UserRecieved(Client.client);
+            if (Settings.IsDEBUG.Equals(true))
+            {
+                Client.Connect(Client.client);
+                Debug(Client.client);
+            }
+            else
+            {
+                Client.Connect(Client.client);
+                Client.ChannelRecieved(Client.client);
+                Client.UserRecieved(Client.client);
+            }
             while (true) ;
 
             //DEBUG.SHOW("Main end.");
@@ -37,6 +45,195 @@ namespace IRC_App
             Settings.IRC_Pass = Settings.GetSetting("Password");
 
             DEBUG.SHOW("Init end.");
+        }
+
+        private static void Debug(IrcClient client)
+        {
+            client.ChannelListRecieved += (s, e) => {
+                DEBUG.SHOW(e.Channel.Mode);
+                DEBUG.SHOW(e.Channel.Name);
+                DEBUG.SHOW(e.Channel.Topic);
+                DEBUG.SHOW(e.Channel.Users.ToString());
+            };
+            client.ChannelMessageRecieved += (s, e) => {
+                DEBUG.SHOW(e.IrcMessage.Command);
+                DEBUG.SHOW(e.IrcMessage.Parameters);
+                DEBUG.SHOW(e.IrcMessage.Prefix);
+                DEBUG.SHOW(e.IrcMessage.RawMessage);
+                DEBUG.SHOW(e.PrivateMessage.IsChannelMessage.ToString());
+                DEBUG.SHOW(e.PrivateMessage.Message);
+                DEBUG.SHOW(e.PrivateMessage.Source.ToString());
+                DEBUG.SHOW(e.PrivateMessage.User.ToString());
+            };
+            client.ChannelTopicReceived += (s, e) => {
+                DEBUG.SHOW(e.Channel.Mode);
+                DEBUG.SHOW(e.Channel.Name);
+                DEBUG.SHOW(e.Channel.Topic);
+                DEBUG.SHOW(e.Channel.Users.ToString());
+                DEBUG.SHOW(e.OldTopic);
+                DEBUG.SHOW(e.Topic);
+            };
+            client.ModeChanged += (s, e) => {
+                DEBUG.SHOW(e.Change);
+                DEBUG.SHOW(e.Target);
+                DEBUG.SHOW(e.User.Channels.ToString());
+                DEBUG.SHOW(e.User.Hostmask);
+                DEBUG.SHOW(e.User.Hostname);
+                DEBUG.SHOW(e.User.Mode);
+                DEBUG.SHOW(e.User.Nick);
+                DEBUG.SHOW(e.User.Password);
+                DEBUG.SHOW(e.User.RealName);
+                DEBUG.SHOW(e.User.User);
+            };
+            client.MOTDPartRecieved += (s, e) => DEBUG.SHOW(e.MOTD);
+            client.MOTDRecieved += (s, e) => DEBUG.SHOW(e.MOTD);
+            client.NetworkError += (s, e) => DEBUG.SHOW(e.SocketError.ToString());
+            client.NickChanged += (s, e) => {
+                DEBUG.SHOW(e.NewNick);
+                DEBUG.SHOW(e.OldNick);
+                DEBUG.SHOW(e.User.Channels.ToString());
+                DEBUG.SHOW(e.User.Hostmask);
+                DEBUG.SHOW(e.User.Hostname);
+                DEBUG.SHOW(e.User.Mode);
+                DEBUG.SHOW(e.User.Nick);
+                DEBUG.SHOW(e.User.Password);
+                DEBUG.SHOW(e.User.RealName);
+                DEBUG.SHOW(e.User.User);
+            };
+            client.NickInUse += (s, e) => {
+                DEBUG.SHOW(e.DoNotHandle.ToString());
+                DEBUG.SHOW(e.InvalidNick);
+                DEBUG.SHOW(e.NewNick);
+            };
+            client.NoticeRecieved += (s, e) => {
+                DEBUG.SHOW(e.Message.Command);
+                DEBUG.SHOW(e.Message.Parameters);
+                DEBUG.SHOW(e.Message.Prefix);
+                DEBUG.SHOW(e.Message.RawMessage);
+                DEBUG.SHOW(e.Notice);
+                DEBUG.SHOW(e.Source);
+            };
+            client.PrivateMessageRecieved += (s, e) => {
+                DEBUG.SHOW(e.IrcMessage.Command);
+                DEBUG.SHOW(e.IrcMessage.Parameters);
+                DEBUG.SHOW(e.IrcMessage.Prefix);
+                DEBUG.SHOW(e.IrcMessage.RawMessage);
+                DEBUG.SHOW(e.PrivateMessage.IsChannelMessage.ToString());
+                DEBUG.SHOW(e.PrivateMessage.Message);
+                DEBUG.SHOW(e.PrivateMessage.Source.ToString());
+                DEBUG.SHOW(e.PrivateMessage.User.ToString());
+            };
+            client.RawMessageRecieved += (s, e) => {
+                DEBUG.SHOW(e.Message);
+                DEBUG.SHOW(e.Outgoing.ToString());
+            };
+            client.RawMessageSent += (s, e) => {
+                DEBUG.SHOW(e.Message);
+                DEBUG.SHOW(e.Outgoing.ToString());
+            };
+            client.ServerInfoRecieved += (s, e) => {
+                DEBUG.SHOW(e.ServerInfo.ChannelTypes.ToString());
+                DEBUG.SHOW(e.ServerInfo.IsGuess.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxAwayLength.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxChannelNameLength.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxChannelsPerUser.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxKickCommentLength.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxModesPerCommand.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxNickLength.ToString());
+                DEBUG.SHOW(e.ServerInfo.MaxTopicLength.ToString());
+                DEBUG.SHOW(e.ServerInfo.Prefixes.ToString());
+                DEBUG.SHOW(e.ServerInfo.SupportedChannelModes.ToString());
+                DEBUG.SHOW(e.ServerInfo.SupportsBanExceptions.ToString());
+                DEBUG.SHOW(e.ServerInfo.SupportsInviteExceptions.ToString());
+            };
+            client.UserJoinedChannel += (s, e) => {
+                DEBUG.SHOW(e.Channel.Mode);
+                DEBUG.SHOW(e.Channel.Name);
+                DEBUG.SHOW(e.Channel.Topic);
+                DEBUG.SHOW(e.Channel.Users.ToString());
+                DEBUG.SHOW(e.User.Channels.ToString());
+                DEBUG.SHOW(e.User.Hostmask);
+                DEBUG.SHOW(e.User.Hostname);
+                DEBUG.SHOW(e.User.Mode);
+                DEBUG.SHOW(e.User.Nick);
+                DEBUG.SHOW(e.User.Password);
+                DEBUG.SHOW(e.User.RealName);
+                DEBUG.SHOW(e.User.User);
+            };
+            client.UserKicked += (s, e) => {
+                DEBUG.SHOW(e.Channel.Mode);
+                DEBUG.SHOW(e.Channel.Name);
+                DEBUG.SHOW(e.Channel.Topic);
+                DEBUG.SHOW(e.Channel.Users.ToString());
+                DEBUG.SHOW(e.Channel.UsersByMode.ToString());
+                DEBUG.SHOW(e.Kicked.Channels.ToString());
+                DEBUG.SHOW(e.Kicked.Hostmask);
+                DEBUG.SHOW(e.Kicked.Hostname);
+                DEBUG.SHOW(e.Kicked.Mode);
+                DEBUG.SHOW(e.Kicked.Nick);
+                DEBUG.SHOW(e.Kicked.Password);
+                DEBUG.SHOW(e.Kicked.RealName);
+                DEBUG.SHOW(e.Kicked.User);
+                DEBUG.SHOW(e.Kicker.Channels.ToString());
+                DEBUG.SHOW(e.Kicker.Hostmask);
+                DEBUG.SHOW(e.Kicker.Hostname);
+                DEBUG.SHOW(e.Kicker.Mode);
+                DEBUG.SHOW(e.Kicker.Nick);
+                DEBUG.SHOW(e.Kicker.Password);
+                DEBUG.SHOW(e.Kicker.RealName);
+                DEBUG.SHOW(e.Kicker.User);
+            };
+            client.UserMessageRecieved += (s, e) => {
+                DEBUG.SHOW(e.IrcMessage.Command);
+                DEBUG.SHOW(e.IrcMessage.Parameters);
+                DEBUG.SHOW(e.IrcMessage.Prefix);
+                DEBUG.SHOW(e.IrcMessage.RawMessage);
+                DEBUG.SHOW(e.PrivateMessage.IsChannelMessage.ToString());
+                DEBUG.SHOW(e.PrivateMessage.Message);
+                DEBUG.SHOW(e.PrivateMessage.Source.ToString());
+                DEBUG.SHOW(e.PrivateMessage.User.ToString());
+            };
+            client.UserPartedChannel += (s, e) => {
+                DEBUG.SHOW(e.Channel.Mode);
+                DEBUG.SHOW(e.Channel.Name);
+                DEBUG.SHOW(e.Channel.Topic);
+                DEBUG.SHOW(e.Channel.Users.ToString());
+                DEBUG.SHOW(e.User.Channels.ToString());
+                DEBUG.SHOW(e.User.Hostmask);
+                DEBUG.SHOW(e.User.Hostname);
+                DEBUG.SHOW(e.User.Mode);
+                DEBUG.SHOW(e.User.Nick);
+                DEBUG.SHOW(e.User.Password);
+                DEBUG.SHOW(e.User.RealName);
+                DEBUG.SHOW(e.User.User);
+            };
+            client.UserQuit += (s, e) => {
+                DEBUG.SHOW(e.User.Channels.ToString());
+                DEBUG.SHOW(e.User.Hostmask);
+                DEBUG.SHOW(e.User.Hostname);
+                DEBUG.SHOW(e.User.Mode);
+                DEBUG.SHOW(e.User.Nick);
+                DEBUG.SHOW(e.User.Password);
+                DEBUG.SHOW(e.User.RealName);
+                DEBUG.SHOW(e.User.User);
+            };
+            client.WhoIsReceived += (s, e) => {
+                DEBUG.SHOW(e.WhoIsResponse.Channels);
+                DEBUG.SHOW(e.WhoIsResponse.IrcOp.ToString());
+                DEBUG.SHOW(e.WhoIsResponse.LoggedInAs);
+                DEBUG.SHOW(e.WhoIsResponse.SecondsIdle.ToString());
+                DEBUG.SHOW(e.WhoIsResponse.Server);
+                DEBUG.SHOW(e.WhoIsResponse.ServerInfo);
+                DEBUG.SHOW(e.WhoIsResponse.User.Channels.ToString());
+                DEBUG.SHOW(e.WhoIsResponse.User.Hostmask);
+                DEBUG.SHOW(e.WhoIsResponse.User.Hostname);
+                DEBUG.SHOW(e.WhoIsResponse.User.Mode);
+                DEBUG.SHOW(e.WhoIsResponse.User.Nick);
+                DEBUG.SHOW(e.WhoIsResponse.User.Password);
+                DEBUG.SHOW(e.WhoIsResponse.User.RealName);
+                DEBUG.SHOW(e.WhoIsResponse.User.User);
+            };
+            DEBUG.SHOW("Debug end.");
         }
     }
 
@@ -62,9 +259,9 @@ namespace IRC_App
 
             client.ConnectionComplete += (s, e) => {
                 client.NoticeRecieved += (t, f) => {
-                    Console.WriteLine(f.Message.RawMessage);
-                    /*if (f.Message.RawMessage.Contains("Password accepted"))
-                        client.JoinChannel(Settings.IRC_Chan);*/
+                    DEBUG.SHOW(f.Message.RawMessage);
+                    if (f.Message.RawMessage.Contains("Password accepted"))
+                        client.JoinChannel(Settings.IRC_Chan);
                 };
             };
 

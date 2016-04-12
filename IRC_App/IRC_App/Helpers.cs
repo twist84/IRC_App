@@ -65,7 +65,7 @@ namespace IRC_Lib
                         Console.WriteLine(Message);
                     }
                 }
-                else
+                else if (Params.Length == 1 && Params[0] != null)
                 {
                     Message = Params[0];
                     Console.WriteLine(Message);

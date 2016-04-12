@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace IRC_Lib
@@ -57,6 +58,12 @@ namespace IRC_Lib
         public static bool IsTimedOut { get; set; } = false;
 
 
+        public static bool IsInMultipleChannels { get; set; } = false;
+
+        public static List<string> ActiveChannels { get; set; } = new List<string>();
+
+        public static bool IsAlreadyInChannel { get; set; } = false;
+
         public static string IRC_Serv { get; set; } = Default[1];
 
         public static string IRC_Chan { get; set; } = Default[2];
@@ -70,13 +77,13 @@ namespace IRC_Lib
 
         public static string[,] Commands { get; set; } = {
             //{ "stats", "Stats for this channel can be found at https://chanstats.snoonet.org/%23eldorito.html" },
-            { "Orion", "OH-RI-ON" },
-            { "clef", "Nice IRC'r" }
+            //{ "Orion", "OH-RI-ON" },
+            //{ "clef", "Nice IRC'r" }
         };
 
         public static string[] Triggers { get; set; } = {
-            "theTwister",
-            "Orion"
+            //"theTwister",
+            //"Orion"
         };
 
         public static string[,] Users { get; set; } = {

@@ -24,8 +24,9 @@ namespace IRC_App
             else
             {
                 Client.Connect(Client.client);
-                Client.ChannelRecieved(Client.client);
-                Client.UserRecieved(Client.client);
+                Client.Channel(Client.client);
+                Client.User(Client.client);
+                Client.Invite(Client.client);
             }
             while (true) ;
 
@@ -253,15 +254,13 @@ namespace IRC_App
         {
             DEBUG.SHOW("Connect start.");
 
-            /*
-            :NickServ!NickServ@snoonet/services/NickServ NOTICE SoonTM :Password accepted - you are now recognized.
-            */
+            //:NickServ!NickServ@snoonet/services/NickServ NOTICE SoonTM :Password accepted - you are now recognized.
 
             client.ConnectionComplete += (s, e) => {
                 client.NoticeRecieved += (t, f) => {
                     DEBUG.SHOW(f.Message.RawMessage);
                     if (f.Message.RawMessage.Contains("Password accepted"))
-                        client.JoinChannel(Settings.IRC_Chan);
+                        client.JoinChannel("##eldorito");//Settings.IRC_Chan);
                 };
             };
 
@@ -270,14 +269,48 @@ namespace IRC_App
             DEBUG.SHOW("Connect end.");
         }
 
-        public static void ChannelRecieved(IrcClient client)
+        public static void Invite(IrcClient client)
+        {
+            //:theTwister!theTwister@user/theTwister INVITE SoonTM :#eldorito
+            
+            client.RawMessageRecieved += (s, e) =>
+            {
+                if (e.Message.Contains("INVITE"))
+                {
+                    string InviteFromUser = Regex.Split(Regex.Split(e.Message, ":")[1], "!")[0];
+                    string InviteToChannel = Regex.Split(e.Message, ":")[2];
+
+                    foreach (string Channel in Settings.ActiveChannels)
+                        if (InviteToChannel.Equals(Channel))
+                            Settings.IsAlreadyInChannel = true;
+
+                    if (Settings.IsAlreadyInChannel.Equals(false))
+                    {
+                        client.JoinChannel(InviteToChannel);
+                        client.SendMessage("Thanks for the invite", InviteFromUser);
+
+                        Settings.IsInMultipleChannels = true;
+
+                        Settings.IsAlreadyInChannel = false;
+                        Settings.ActiveChannels.Add(InviteToChannel);
+
+                        DEBUG.SHOW(String.Format("Accepted invite from: {0} to join channel: ", InviteFromUser, InviteToChannel));
+                        Logger.Log(String.Format("Accepted invite from: {0} to join channel: ", InviteFromUser, InviteToChannel));
+                    }
+                }
+            };
+        }
+
+        public static void Channel(IrcClient client)
         {
             DEBUG.SHOW("ChannelRecieved start.");
 
+            #region client.ChannelTopicReceived
             client.ChannelTopicReceived += (s, e) =>
             {
                 DEBUG.SHOW("ChannelTopicReceived start.");
 
+                string Channel = e.Channel.Name;
                 string Topic = e.Channel.Topic;
 
                 Console.BackgroundColor = ConsoleColor.Blue;
@@ -288,66 +321,117 @@ namespace IRC_App
                 if (!(Topic.Contains("ftp://") || Topic.Contains("http://") || Topic.Contains("https://")))
                     Logger.Log(String.Format("{0}", Topic));
                 else
-                    Logger.Log(String.Format("The topic in channel {0} contains a Url not logging it", e.Channel.Name));
+                    Logger.Log(String.Format("The topic in channel {0} contains a Url not logging it", Channel));
 
                 DEBUG.SHOW("ChannelTopicReceived end.");
             };
+            #endregion
 
+            #region client.ChannelMessageRecieved
             client.ChannelMessageRecieved += (s, e) =>
             {
                 DEBUG.SHOW("ChannelMessageRecieved start.");
 
+                string Channel = e.PrivateMessage.Source;
                 string Nick = Regex.Split(e.PrivateMessage.User.Nick, "!")[0];
                 string Message = e.PrivateMessage.Message;
 
-                var channel = client.Channels[e.PrivateMessage.Source];
+                var channel = client.Channels[Channel];
 
-                if (Message.Contains(Settings.IRC_Nick) || Message.Contains(Settings.IRC_User))
+                switch (Settings.IsInMultipleChannels)
                 {
-                    Console.BackgroundColor = ConsoleColor.Green;
-                    Console.ForegroundColor = ConsoleColor.Black;
-                    Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
-                    Console.ResetColor();
-                    Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
-                }
-                else
-                {
-                    Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
-                    Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
-                }
-
-                if (Message.Equals(".list"))
-                    channel.SendMessage(String.Format("Hai, {0}", Nick));
-
-                for (int i = 0; i < Settings.Commands.Length / 2; i++)
-                {
-                    string s1 = Settings.Commands[i, 0];
-                    string s2 = Settings.Commands[i, 1];
-
-                    if (Message.StartsWith("!" + s1))
-                    {
-                        if (Settings.IsTimedOut == false)
+                    #region false
+                    case false:
+                        if (Message.Contains(Settings.IRC_Nick) || Message.Contains(Settings.IRC_User))
                         {
-                            channel.SendMessage(String.Format("{0}, {1}", Nick, s2));
-                            Timeout.Start();
+                            Console.BackgroundColor = ConsoleColor.Green;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
                         }
-                    }
-                }
+                        else
+                        {
+                            Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
+                            Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
+                        }
 
-                foreach (string Trigger in Settings.Triggers)
-                    if (!Message.StartsWith("!") && Message.Contains(Trigger))
-                        channel.SendMessage(String.Format("Hai, {0}", Nick));
+                        if (Message.Equals(".list"))
+                            channel.SendMessage(String.Format("Hai, {0}", Nick));
+
+                        for (int i = 0; i < Settings.Commands.Length / 2; i++)
+                        {
+                            string s1 = Settings.Commands[i, 0];
+                            string s2 = Settings.Commands[i, 1];
+
+                            if (Message.StartsWith("!" + s1))
+                            {
+                                if (Settings.IsTimedOut == false)
+                                {
+                                    channel.SendMessage(String.Format("{0}, {1}", Nick, s2));
+                                    Timeout.Start();
+                                }
+                            }
+                        }
+
+                        foreach (string Trigger in Settings.Triggers)
+                            if (!Message.StartsWith("!") && Message.Contains(Trigger))
+                                channel.SendMessage(String.Format("Hai, {0}", Nick));
+                        break;
+                    #endregion
+                    #region true
+                    case true:
+                        if (Message.Contains(Settings.IRC_Nick) || Message.Contains(Settings.IRC_User))
+                        {
+                            Console.BackgroundColor = ConsoleColor.Green;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message));
+                        }
+                        else
+                        {
+                            Console.WriteLine("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message);
+                            Logger.Log(String.Format("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message));
+                        }
+
+                        if (Message.Equals(".list"))
+                            channel.SendMessage(String.Format("Hai, {0}", Nick));
+
+                        for (int i = 0; i < Settings.Commands.Length / 2; i++)
+                        {
+                            string s1 = Settings.Commands[i, 0];
+                            string s2 = Settings.Commands[i, 1];
+
+                            if (Message.StartsWith("!" + s1))
+                            {
+                                if (Settings.IsTimedOut == false)
+                                {
+                                    channel.SendMessage(String.Format("{0}, {1}", Nick, s2));
+                                    Timeout.Start();
+                                }
+                            }
+                        }
+
+                        foreach (string Trigger in Settings.Triggers)
+                            if (!Message.StartsWith("!") && Message.Contains(Trigger))
+                                channel.SendMessage(String.Format("Hai, {0}", Nick));
+                        break;
+                        #endregion
+                }
 
                 DEBUG.SHOW("ChannelMessageRecieved end.");
             };
+            #endregion
 
             DEBUG.SHOW("ChannelRecieved end.");
         }
 
-        public static void UserRecieved(IrcClient client)
+        public static void User(IrcClient client)
         {
             DEBUG.SHOW("UserRecieved start.");
 
+            #region client.UserJoinedChannel
             client.UserJoinedChannel += (s, e) =>
             {
                 DEBUG.SHOW("UserJoinedChannel start.");
@@ -356,57 +440,111 @@ namespace IRC_App
                 string Host = Regex.Split(e.User.Hostmask, "!")[1];
                 var Channel = e.Channel;
 
-                if (Nick.Equals(Regex.Split(client.User.Nick, "!")[0]))
+                switch (Settings.IsInMultipleChannels)
                 {
-                    Console.BackgroundColor = ConsoleColor.Black;
-                    Console.ForegroundColor = ConsoleColor.Green;
-                    Console.WriteLine("[{0}] Now talking on {1}", Settings.Date, Channel.Name);
-                    Console.ResetColor();
-                    Logger.Log(String.Format("[{0}] Now talking on {1}", Settings.Date, Channel.Name));
-                }
-                else
-                {
-                    Console.BackgroundColor = ConsoleColor.DarkGreen;
-                    Console.ForegroundColor = ConsoleColor.Black;
-                    Console.WriteLine("[{0}] {1} ({2}) has joined", Settings.Date, Nick, Host);
-                    Console.ResetColor();
-                    Logger.Log(String.Format("[{0}] {1} ({2}) has joined", Settings.Date, Nick, Host));
-                }
-                
-                foreach (string User in Settings.Users)
-                {
-                    foreach (string mUser in User.Split('|')[0].Split(';'))
-                        if (Nick.ToLower().Equals(mUser))
+                    #region false
+                    case false:
+                        if (Nick.Equals(Regex.Split(client.User.Nick, "!")[0]))
                         {
-                            Channel.SendMessage(String.Format(User.Split('|')[1], mUser));
-                            Console.WriteLine("Sent welcome message to {0}", mUser);
+                            Console.BackgroundColor = ConsoleColor.Black;
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[{0}] Now talking on {1}", Settings.Date, Channel.Name);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] Now talking on {1}", Settings.Date, Channel.Name));
                         }
-                }
+                        else
+                        {
+                            Console.BackgroundColor = ConsoleColor.DarkGreen;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1} ({2}) has joined channel: {3}", Settings.Date, Nick, Host, Channel.Name);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1} ({2}) has joined channel: {3}", Settings.Date, Nick, Host, Channel.Name));
+                        }
 
-                for (int i = 0; i < Settings.Users.Length / 2; i++)
-                {
-                    string User = Settings.Users[i, 0];
-                    string WelcomeMessage = Settings.Users[i, 1];
+                        for (int i = 0; i < Settings.Users.Length / 2; i++)
+                        {
+                            string User = Settings.Users[i, 0];
+                            string WelcomeMessage = Settings.Users[i, 1];
 
-                    if (Nick.Equals(User))
-                    Channel.SendMessage(String.Format("{0}, {1}", Nick, WelcomeMessage));
-                }
+                            if (Nick.Equals(User))
+                                Channel.SendMessage(String.Format("{0}, {1}", Nick, WelcomeMessage));
+                        }
 
-                if (Nick.ToLower().StartsWith("snoo") || Nick.ToLower().StartsWith("eldorito"))
-                {
-                    Channel.SendMessage(String.Format("Welcome {0}, What is your enquiry", Nick));
-                    Console.WriteLine("Sent welcome message to {0}", Nick);
+                        if (Nick.ToLower().StartsWith("snoo") || Nick.ToLower().StartsWith("eldorito"))
+                        {
+                            Channel.SendMessage(String.Format("Welcome {0}, What is your enquiry", Nick));
+                            Console.WriteLine("Sent welcome message to {0}", Nick);
+                        }
+                        break;
+                    #endregion
+                    #region true
+                    case true:
+                        if (Nick.Equals(Regex.Split(client.User.Nick, "!")[0]))
+                        {
+                            Console.BackgroundColor = ConsoleColor.Black;
+                            Console.ForegroundColor = ConsoleColor.Green;
+                            Console.WriteLine("[{0}] Now talking on {1}", Settings.Date, Channel.Name);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] Now talking on {1}", Settings.Date, Channel.Name));
+                        }
+                        else
+                        {
+                            Console.BackgroundColor = ConsoleColor.DarkGreen;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1} ({2}) has joined channel: {3}", Settings.Date, Nick, Host, Channel.Name);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1} ({2}) has joined channel: {3}", Settings.Date, Nick, Host, Channel.Name));
+                        }
+
+                        for (int i = 0; i < Settings.Users.Length / 2; i++)
+                        {
+                            string User = Settings.Users[i, 0];
+                            string WelcomeMessage = Settings.Users[i, 1];
+
+                            if (Nick.Equals(User))
+                            {
+                                Channel.SendMessage(String.Format("{0}, {1}", Nick, WelcomeMessage));
+                                Console.WriteLine("{0}: Sent welcome message to {1}", Channel.Name, Nick);
+                            }
+                        }
+
+                        if (Nick.ToLower().StartsWith("snoo") || Nick.ToLower().StartsWith("eldorito"))
+                        {
+                            Channel.SendMessage(String.Format("Welcome {0}, What is your enquiry", Nick));
+                            Console.WriteLine("{0}: Sent welcome message to {1}", Channel.Name, Nick);
+                        }
+                        break;
+                        #endregion
                 }
 
                 DEBUG.SHOW("UserJoinedChannel end.");
             };
+            #endregion
+            #region client.UserPartedChannel
+            client.UserPartedChannel += (s, e) =>
+            {
+                DEBUG.SHOW("UserPartedChannel start.");
 
+                string Channel = e.Channel.Name;
+                string Nick = Regex.Split(e.User.Nick, "!")[0];
+
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = ConsoleColor.White;
+                Console.WriteLine("[{0}] {1}: {2} has left", Settings.Date, Channel, Nick);
+                Console.ResetColor();
+                Logger.Log(String.Format("[{0}] {1} has left {2}", Settings.Date, Nick, Channel));
+
+                DEBUG.SHOW("UserPartedChannel end.");
+            };
+            #endregion
+
+            #region client.UserKicked
             client.UserKicked += (s, e) =>
             {
                 DEBUG.SHOW("UserKicked start.");
 
                 string Kicker = Regex.Split(e.Kicker.Nick, "!")[0];
-                string Kicked = Regex.Split(e.Kicked.Nick, "!")[0];
+                string Kicked = Regex.Split(e.Kicked.User, "!")[0];
                 string Channel = e.Channel.Name;
                 string Reason = e.Reason;
 
@@ -429,40 +567,116 @@ namespace IRC_App
 
                 Console.WriteLine("DEBUG: UserKicked end.");
             };
-
-            client.UserPartedChannel += (s, e) =>
-            {
-                DEBUG.SHOW("UserPartedChannel start.");
-
-                string Nick = Regex.Split(e.User.Nick, "!")[0];
-
-                Console.BackgroundColor = ConsoleColor.DarkGray;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("[{0}] {1} has left",
-                    Settings.Date, Nick);
-                Console.ResetColor();
-                Logger.Log(String.Format("[{0}] {1} has left",
-                    Settings.Date, Nick));
-
-                DEBUG.SHOW("UserPartedChannel end.");
-            };
-
+            #endregion
+            #region client.UserQuit
             client.UserQuit += (s, e) =>
             {
-                DEBUG.SHOW("UserPartedChannel start.");
+                DEBUG.SHOW("UserQuit start.");
 
                 string Nick = Regex.Split(e.User.Nick, "!")[0];
 
                 Console.BackgroundColor = ConsoleColor.DarkGray;
                 Console.ForegroundColor = ConsoleColor.Black;
-                Console.WriteLine("[{0}] {1} has quit",
-                    Settings.Date, Nick);
+                Console.WriteLine("[{0}] {1} has quit", Settings.Date, Nick);
                 Console.ResetColor();
-                Logger.Log(String.Format("[{0}] {1} has quit",
-                    Settings.Date, Nick));
+                Logger.Log(String.Format("[{0}] {1} has quit", Settings.Date, Nick));
 
-                DEBUG.SHOW("UserPartedChannel end.");
+                DEBUG.SHOW("UserQuit end.");
             };
+            #endregion
+
+            #region client.UserMessageRecieved
+            client.UserMessageRecieved += (s, e) =>
+            {
+                DEBUG.SHOW("UserMessageRecieved start.");
+
+                string Channel = e.PrivateMessage.Source;
+                string Nick = Regex.Split(e.PrivateMessage.User.Nick, "!")[0];
+                string Message = e.PrivateMessage.Message;
+
+                switch (Settings.IsInMultipleChannels)
+                {
+                    #region false
+                    case false:
+                        if (Message.Contains(Settings.IRC_Nick) || Message.Contains(Settings.IRC_User))
+                        {
+                            Console.BackgroundColor = ConsoleColor.Green;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
+                        }
+                        else
+                        {
+                            Console.WriteLine("[{0}] {1}: {2}", Settings.Date, Nick, Message);
+                            Logger.Log(String.Format("[{0}] {1}: {2}", Settings.Date, Nick, Message));
+                        }
+
+                        if (Message.Equals(".list"))
+                            client.SendMessage(String.Format("Hai, {0}", Nick), e.PrivateMessage.Source);
+
+                        for (int i = 0; i < Settings.Commands.Length / 2; i++)
+                        {
+                            string s1 = Settings.Commands[i, 0];
+                            string s2 = Settings.Commands[i, 1];
+
+                            if (Message.StartsWith("!" + s1))
+                            {
+                                if (Settings.IsTimedOut == false)
+                                {
+                                    client.SendMessage(String.Format("{0}, {1}", Nick, s2), e.PrivateMessage.Source);
+                                }
+                            }
+                        }
+
+                        foreach (string Trigger in Settings.Triggers)
+                            if (!Message.StartsWith("!") && Message.Contains(Trigger))
+                                client.SendMessage(String.Format("Hai, {0}", Nick), e.PrivateMessage.Source);
+                        break;
+                    #endregion
+                    #region true
+                    case true:
+                        if (Message.Contains(Settings.IRC_Nick) || Message.Contains(Settings.IRC_User))
+                        {
+                            Console.BackgroundColor = ConsoleColor.Green;
+                            Console.ForegroundColor = ConsoleColor.Black;
+                            Console.WriteLine("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message);
+                            Console.ResetColor();
+                            Logger.Log(String.Format("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message));
+                        }
+                        else
+                        {
+                            Console.WriteLine("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message);
+                            Logger.Log(String.Format("[{0}] {1}: {2}: {3}", Settings.Date, Channel, Nick, Message));
+                        }
+
+                        if (Message.Equals(".list"))
+                            client.SendMessage(String.Format("Hai, {0}", Nick), e.PrivateMessage.Source);
+
+                        for (int i = 0; i < Settings.Commands.Length / 2; i++)
+                        {
+                            string s1 = Settings.Commands[i, 0];
+                            string s2 = Settings.Commands[i, 1];
+
+                            if (Message.StartsWith("!" + s1))
+                            {
+                                if (Settings.IsTimedOut == false)
+                                {
+                                    client.SendMessage(String.Format("{0}, {1}", Nick, s2), e.PrivateMessage.Source);
+                                }
+                            }
+                        }
+
+                        foreach (string Trigger in Settings.Triggers)
+                            if (!Message.StartsWith("!") && Message.Contains(Trigger))
+                                client.SendMessage(String.Format("Hai, {0}", Nick), e.PrivateMessage.Source);
+                        break;
+                        #endregion
+                }
+
+                DEBUG.SHOW("UserMessageRecieved end.");
+            };
+            #endregion
 
             DEBUG.SHOW("UserRecieved end.");
         }
